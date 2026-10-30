@@ -98,6 +98,59 @@
   .row.active .n{color:#fff;font-weight:600}
   .ov-count{padding:10px 18px;color:var(--txt3);font-size:12px;border-top:1px solid var(--line)}
 
+  /* 删除按钮（列表行右侧，悬停显示） */
+  .row .del{opacity:0;flex:0 0 auto;width:26px;height:26px;border:none;border-radius:8px;background:none;color:var(--txt3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .row:hover .del{opacity:1}
+  .row .del:hover{color:#ff6b6b;background:rgba(255,90,90,.14)}
+  .row .del svg{width:16px;height:16px}
+
+  /* 删除确认弹窗 */
+  .confirm{position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:60}
+  .confirm.show{display:flex}
+  .confirm-box{width:min(86vw,340px);background:#1c1e28;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 24px 70px rgba(0,0,0,.55)}
+  .confirm-title{font-size:15px;font-weight:700;margin-bottom:10px}
+  .confirm-text{font-size:13px;color:var(--txt2);line-height:1.7;white-space:pre-wrap;word-break:break-all;margin-bottom:18px}
+  .confirm-actions{display:flex;gap:10px;justify-content:flex-end}
+  .confirm-actions button{font:inherit;font-size:13px;padding:8px 16px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);cursor:pointer;transition:.15s}
+  .confirm-actions button:hover{background:rgba(255,255,255,.12)}
+  .confirm-actions .danger{background:linear-gradient(135deg,#ff5b5b,#ff3d6e);border:none;color:#fff;font-weight:600}
+  .confirm-actions .danger:hover{filter:brightness(1.08)}
+
+  /* 裁剪按钮（列表行，悬停显示） */
+  .row .ed{opacity:0;flex:0 0 auto;width:26px;height:26px;border:none;border-radius:8px;background:none;color:var(--txt3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:.15s}
+  .row:hover .ed{opacity:1}
+  .row .ed:hover{color:var(--teal);background:rgba(47,214,196,.14)}
+  .row .ed svg{width:16px;height:16px}
+
+  /* 裁剪编辑器 */
+  .trim{position:fixed;inset:0;background:rgba(4,5,8,.72);backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;z-index:55;padding:16px}
+  .trim.show{display:flex}
+  .trim-box{width:min(100%,460px);background:#161821;border:1px solid var(--line);border-radius:16px;padding:16px 16px 13px;box-shadow:0 24px 70px rgba(0,0,0,.6);max-height:100%;overflow:auto}
+  .trim-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+  .trim-title{font-size:14px;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trim-x{width:26px;height:26px;border:none;border-radius:8px;background:rgba(255,255,255,.06);color:var(--txt2);cursor:pointer;font-size:13px;line-height:1;flex:0 0 auto}
+  .trim-x:hover{color:#fff;background:rgba(255,255,255,.14)}
+  .trim-wave{position:relative;height:96px;border-radius:10px;background:rgba(255,255,255,.04);overflow:hidden;cursor:crosshair;user-select:none}
+  .trim-wave canvas{display:block;width:100%;height:100%}
+  .trim-dim{position:absolute;top:0;bottom:0;background:rgba(6,7,11,.62);pointer-events:none}
+  .trim-dim.l{left:0;width:0}
+  .trim-dim.r{right:0;width:0}
+  .trim-ph{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.8);left:0;pointer-events:none}
+  .trim-h{position:absolute;top:0;bottom:0;width:13px;margin-left:-6.5px;cursor:ew-resize;z-index:3;display:flex;align-items:center;justify-content:center}
+  .trim-h::before{content:'';position:absolute;top:0;bottom:0;left:6px;width:2px;background:var(--teal);box-shadow:0 0 10px rgba(47,214,196,.85)}
+  .trim-h::after{content:'';width:13px;height:24px;border-radius:6px;background:var(--teal);box-shadow:0 2px 8px rgba(0,0,0,.5)}
+  .trim-time{display:flex;justify-content:space-between;font-size:12px;color:var(--txt3);margin:11px 2px 13px;font-variant-numeric:tabular-nums}
+  .trim-time b{color:var(--txt);font-weight:600}
+  .trim-actions{display:flex;gap:8px}
+  .trim-actions button{font:inherit;font-size:12.5px;padding:9px 13px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--txt);cursor:pointer;transition:.15s;white-space:nowrap}
+  .trim-actions button:hover{background:rgba(255,255,255,.13)}
+  .trim-actions button:disabled{opacity:.55;cursor:default}
+  .trim-actions .grow{flex:1}
+  .trim-actions .primary{background:linear-gradient(135deg,var(--blue),var(--teal));border:none;color:#fff;font-weight:600}
+  .trim-hint{margin-top:9px;font-size:11.5px;color:var(--txt3);line-height:1.6}
+  .trim-hint b{color:var(--txt2)}
+  .trim-loading{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:12px;color:var(--txt2);background:rgba(12,13,18,.6)}
+
   /* 拖放提示 */
   .dropzone{position:fixed;inset:14px;border:2px dashed rgba(47,214,196,.5);border-radius:18px;
     display:none;align-items:center;justify-content:center;font-size:18px;color:var(--teal);
@@ -177,6 +230,48 @@
   </div>
   <div class="ov-list" id="ovList"></div>
   <div class="ov-count" id="ovCount"></div>
+</div>
+
+<!-- 删除/覆盖确认弹窗 -->
+<div class="confirm" id="confirmMask">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirmTitle">删除歌曲</div>
+    <div class="confirm-text" id="confirmText"></div>
+    <div class="confirm-actions">
+      <button id="confirmCancel">取消</button>
+      <button id="confirmOk" class="danger">永久删除</button>
+    </div>
+  </div>
+</div>
+
+<!-- 裁剪编辑器 -->
+<div class="trim" id="trimMask">
+  <div class="trim-box">
+    <div class="trim-head">
+      <div class="trim-title" id="trimName">裁剪音频</div>
+      <button class="trim-x" id="trimClose" title="关闭">✕</button>
+    </div>
+    <div class="trim-wave" id="trimWave">
+      <canvas id="trimCanvas"></canvas>
+      <div class="trim-dim l" id="trimDimL"></div>
+      <div class="trim-dim r" id="trimDimR"></div>
+      <div class="trim-ph" id="trimPh"></div>
+      <div class="trim-h" id="trimHs" data-h="s"></div>
+      <div class="trim-h" id="trimHe" data-h="e"></div>
+      <div class="trim-loading" id="trimLoading">正在读取音频波形…</div>
+    </div>
+    <div class="trim-time">
+      <span>开始 <b id="trimStartT">0:00</b></span>
+      <span>结束 <b id="trimEndT">0:00</b></span>
+      <span>保留 <b id="trimLenT">0:00</b></span>
+    </div>
+    <div class="trim-actions">
+      <button id="trimPreview">▶ 试听</button>
+      <button class="grow" id="trimCancel">取消</button>
+      <button class="primary" id="trimSave">覆盖保存</button>
+    </div>
+    <div class="trim-hint">拖动两侧手柄选择要保留的片段，点波形可移动播放位置。保存会<b>覆盖原文件</b>；按 MP3 帧边界切割、不重新编码，音质与原来一致。</div>
+  </div>
 </div>
 
 <div class="dropzone" id="dropzone">松开以加载音乐</div>
@@ -268,7 +363,7 @@
   function renderList(){
     const kw = $('search').value.toLowerCase();
     const arr = tracks.map((t,i)=>({t,i})).filter(o=>o.t.title.toLowerCase().includes(kw));
-    $('ovList').innerHTML = arr.map(o=>`<div class="row ${o.i===curIndex?'active':''}" data-i="${o.i}"><span class="n">${escapeHtml(o.t.title)}</span></div>`).join('');
+    $('ovList').innerHTML = arr.map(o=>`<div class="row ${o.i===curIndex?'active':''}" data-i="${o.i}"><span class="n">${escapeHtml(o.t.title)}</span><button class="ed" data-ed="${o.i}" title="裁剪音频"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M20 4L8.5 15.5"/><path d="M14.5 14.5L20 20"/><path d="M8.5 8.5L12 12"/></svg></button><button class="del" data-del="${o.i}" title="删除本地文件"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16"/><path d="M9 7V5a1 1 0 011-1h4a1 1 0 011 1v2"/><path d="M6 7l1 13a1 1 0 001 1h8a1 1 0 001-1l1-13"/><path d="M10 11v6M14 11v6"/></svg></button></div>`).join('');
     $('ovCount').textContent = arr.length+' / '+tracks.length+' 首';
   }
 
@@ -278,7 +373,7 @@
     curIndex = i;
     pos = queue.indexOf(i); if(pos<0){ queue.push(i); pos=queue.length-1; }
     const t = tracks[curIndex];
-    if(t.url){ if(curURL){ URL.revokeObjectURL(curURL); curURL=null; } audio.src = t.url; }
+    if(t.url){ if(curURL){ URL.revokeObjectURL(curURL); curURL=null; } audio.src = t.url + (t.ver ? (t.url.indexOf('?')>=0?'&':'?') + 'v=' + t.ver : ''); }
     else if(t.file){ if(curURL) URL.revokeObjectURL(curURL); curURL = URL.createObjectURL(t.file); audio.src = curURL; }
     else return;
     $('npTitle').textContent = t.title;
@@ -318,7 +413,7 @@
   /* ---------- 拖拽移动窗口（无边框） ---------- */
   let drag=null, dragRAF=null, dragTarget=null;
   document.addEventListener('mousedown', e=>{
-    if(e.target.closest('button, input, .progress, .overlay, .row, .topctrl, .pick-btn, .rz')) return;
+    if(e.target.closest('button, input, .progress, .overlay, .row, .topctrl, .pick-btn, .rz, .trim, .confirm')) return;
     onReady(()=>{ apiCall('get_pos').then(p=>{ if(p) drag={sx:e.screenX, sy:e.screenY, wx:p[0], wy:p[1]}; }); });
   });
   document.addEventListener('mousemove', e=>{
@@ -421,7 +516,29 @@
     $('repeatOne').style.display = on ? 'block' : 'none';
     toast(on ? '单曲循环' : '顺序播放');
   });
-  $('volume').addEventListener('input', e=>{ audio.volume=+e.target.value; lsSet('vol',e.target.value); });
+  /* 音量记忆：写入后端配置（pywebview 里 localStorage 不可用，仅作网页版回退） */
+  let volTimer = null, volTouched = false;
+  function applyVolume(v){
+    v = +v;
+    if(isNaN(v)) return;
+    v = Math.max(0, Math.min(1, v));
+    audio.volume = v;
+    $('volume').value = v;
+  }
+  function saveVolume(v){
+    clearTimeout(volTimer);
+    lsSet('vol', v);
+    apiCall('set_volume', +v);
+  }
+  $('volume').addEventListener('input', e=>{
+    const v=+e.target.value;
+    volTouched = true;
+    audio.volume=v;
+    lsSet('vol', v);
+    clearTimeout(volTimer);
+    volTimer = setTimeout(()=>apiCall('set_volume', v), 250);   // 拖动时防抖
+  });
+  $('volume').addEventListener('change', e=>saveVolume(e.target.value));   // 松手立即落盘
   $('progress').addEventListener('mousedown', e=>{dragging=true;seekTo(e.clientX);});
   window.addEventListener('mousemove', e=>{if(dragging)seekTo(e.clientX);});
   window.addEventListener('mouseup', ()=>dragging=false);
@@ -439,7 +556,265 @@
   $('npTitle').addEventListener('dblclick', openList);
 
   $('search').addEventListener('input', renderList);
-  $('ovList').addEventListener('click', e=>{ const el=e.target.closest('.row'); if(!el)return; closeList(); playIndex(+el.dataset.i); });
+
+  /* ---------- 通用二次确认（删除 / 覆盖保存共用） ---------- */
+  let confirmCb = null;
+  function showConfirm(title, text, okLabel, cb){
+    $('confirmTitle').textContent = title;
+    $('confirmText').textContent = text;
+    $('confirmOk').textContent = okLabel;
+    confirmCb = cb;
+    $('confirmMask').classList.add('show');
+  }
+  function closeConfirm(){ $('confirmMask').classList.remove('show'); confirmCb = null; }
+
+  /* ---------- 删除歌曲（永久删除本地文件） ---------- */
+  function askDelete(i){
+    const t = tracks[i]; if(!t) return;
+    showConfirm('删除歌曲', '将永久删除本地文件，无法恢复：\n\n「' + t.title + '」', '永久删除', ()=>doDelete(i));
+  }
+  async function doDelete(i){
+    const t = tracks[i]; if(!t) return;
+    const res = await apiCall('delete_track', t.name);
+    if(!res || !res.ok){ toast('删除失败：' + ((res && res.error) || '未知错误')); return; }
+    const wasCurrent = (i === curIndex);
+    const wasPlaying = !audio.paused;
+    tracks.splice(i, 1);
+    if(wasCurrent){
+      try{ audio.pause(); }catch(e){}
+      if(curURL){ URL.revokeObjectURL(curURL); curURL = null; }
+      audio.removeAttribute('src'); try{ audio.load(); }catch(e){}
+      curIndex = -1; pos = 0;
+    } else if(curIndex > i){
+      curIndex -= 1;
+    }
+    rebuildQueue();
+    if(tracks.length === 0){
+      curIndex = -1; pos = 0;
+      $('npTitle').textContent = '未在播放'; $('npArtist').textContent = '';
+      $('cur').textContent = '0:00'; $('dur').textContent = '0:00';
+      $('fill').style.width = '0%'; $('knob').style.left = '0%';
+      $('playIcon').innerHTML = '<path d="M8 5v14l11-7z"/>';
+      renderList(); toast('已删除，列表已空');
+      return;
+    }
+    if(wasCurrent){
+      loadIndex(Math.min(i, tracks.length - 1), wasPlaying);
+    } else {
+      pos = queue.indexOf(curIndex);
+      renderList();
+    }
+    toast('已删除：' + t.title);
+  }
+  $('confirmCancel').addEventListener('click', closeConfirm);
+  $('confirmMask').addEventListener('click', e=>{ if(e.target === $('confirmMask')) closeConfirm(); });
+  $('confirmOk').addEventListener('click', ()=>{ const cb = confirmCb; closeConfirm(); if(cb) cb(); });
+
+  /* ---------- 裁剪音频（只保留选区，覆盖原文件） ---------- */
+  const trim = {i:-1, dur:0, start:0, end:0, peaks:null, preview:false};
+  const tWave = $('trimWave'), tCanvas = $('trimCanvas');
+
+  function pctOf(sec){ return trim.dur ? Math.max(0, Math.min(100, sec / trim.dur * 100)) : 0; }
+  function secOf(clientX){
+    const r = tWave.getBoundingClientRect();
+    return Math.max(0, Math.min(1, (clientX - r.left) / r.width)) * trim.dur;
+  }
+  function peaksFrom(buf, buckets){
+    const chs = Math.min(2, buf.numberOfChannels);
+    const datas = [];
+    for(let c=0;c<chs;c++) datas.push(buf.getChannelData(c));
+    const len = buf.length, out = new Array(buckets).fill(0);
+    const step = Math.max(1, Math.floor(len / buckets));
+    for(let b=0;b<buckets;b++){
+      const s = b*step, e = Math.min(len, s+step);
+      let m = 0;
+      for(let c=0;c<datas.length;c++){
+        const d = datas[c];
+        for(let k=s;k<e;k+=4){ const v = d[k] < 0 ? -d[k] : d[k]; if(v>m) m = v; }
+      }
+      out[b] = m;
+    }
+    const peak = Math.max.apply(null, out.concat([0.001]));
+    return out.map(v=>Math.pow(v/peak, 0.72));   // 归一化 + 提升小音量段的可视性
+  }
+  function drawWave(){
+    const dpr = window.devicePixelRatio || 1;
+    const w = tWave.clientWidth || 300, h = tWave.clientHeight || 96;
+    if(tCanvas.width !== Math.round(w*dpr) || tCanvas.height !== Math.round(h*dpr)){
+      tCanvas.width = Math.round(w*dpr); tCanvas.height = Math.round(h*dpr);
+    }
+    const ctx = tCanvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const mid = h/2;
+    if(trim.peaks && trim.peaks.length){
+      const n = trim.peaks.length, bw = w/n, gap = bw>2.5 ? 1 : 0;
+      const g = ctx.createLinearGradient(0, 4, 0, h-4);
+      g.addColorStop(0, '#4b8dff'); g.addColorStop(.5, '#2fd6c4'); g.addColorStop(1, '#4b8dff');
+      ctx.fillStyle = g;
+      for(let k=0;k<n;k++){
+        const amp = Math.max(0.015, trim.peaks[k]) * (mid - 4);
+        ctx.fillRect(k*bw, mid-amp, Math.max(1, bw-gap), amp*2);
+      }
+    } else {
+      ctx.fillStyle = 'rgba(255,255,255,.12)';
+      ctx.fillRect(0, mid-1, w, 2);
+    }
+  }
+  function updateTrimPlayhead(){
+    let p = 0;
+    if(trim.i >= 0 && trim.i === curIndex && audio.duration) p = audio.currentTime / audio.duration * 100;
+    $('trimPh').style.left = Math.max(0, Math.min(100, p)) + '%';
+  }
+  function layoutTrim(){
+    const ps = pctOf(trim.start), pe = pctOf(trim.end);
+    $('trimDimL').style.width = ps + '%';
+    $('trimDimR').style.width = (100 - pe) + '%';
+    $('trimHs').style.left = ps + '%';
+    $('trimHe').style.left = pe + '%';
+    $('trimStartT').textContent = fmt(trim.start);
+    $('trimEndT').textContent = fmt(trim.end);
+    $('trimLenT').textContent = fmt(Math.max(0, trim.end - trim.start));
+    updateTrimPlayhead();
+  }
+  function setPreviewLabel(on){ $('trimPreview').textContent = on ? '⏸ 停止' : '▶ 试听'; }
+  function stopPreview(){ trim.preview = false; setPreviewLabel(false); }
+
+  async function openTrim(i){
+    const t = tracks[i]; if(!t) return;
+    trim.i = i; trim.peaks = null; trim.preview = false;
+    setPreviewLabel(false);
+    $('trimName').textContent = t.title;
+    $('trimMask').classList.add('show');
+    $('trimLoading').style.display = 'flex';
+    trim.dur = (t.duration && !isNaN(t.duration) && t.duration > 0) ? t.duration
+             : ((i === curIndex && audio.duration) ? audio.duration : 0);
+    trim.start = 0; trim.end = trim.dur || 1;
+    requestAnimationFrame(()=>{ drawWave(); layoutTrim(); });
+
+    // 抓取音频解码出波形（失败则退化为纯色条）
+    let buf = null;
+    if(t.url){
+      try{
+        const res = await fetch(t.url + (t.url.indexOf('?')>=0?'&':'?') + 'v=' + (t.ver||0));
+        const len = +(res.headers.get('content-length') || 0);
+        if(!len || len < 60*1024*1024){
+          const ab = await res.arrayBuffer();
+          const AC = window.AudioContext || window.webkitAudioContext;
+          if(AC){
+            const ac = new AC();
+            buf = await new Promise((ok, bad)=>{ ac.decodeAudioData(ab, ok, bad); });
+            try{ ac.close(); }catch(e){}
+          }
+        }
+      }catch(e){ jslog('wave-fail ' + ((e && e.message) || e)); buf = null; }
+    }
+    if(trim.i !== i) return;                 // 期间已关闭或切到别的歌
+    if(buf && buf.duration){
+      trim.dur = buf.duration;
+      trim.peaks = peaksFrom(buf, 180);
+      buf = null;
+    }
+    if(!trim.dur){ $('trimLoading').style.display = 'none'; toast('无法读取该音频的时长'); closeTrim(); return; }
+    trim.start = 0; trim.end = trim.dur;
+    $('trimLoading').style.display = 'none';
+    drawWave(); layoutTrim();
+  }
+  function closeTrim(){
+    stopPreview();
+    trim.i = -1; trim.peaks = null;
+    $('trimMask').classList.remove('show');
+  }
+
+  function togglePreview(){
+    if(trim.i < 0) return;
+    if(trim.preview){ stopPreview(); audio.pause(); return; }
+    if(trim.i !== curIndex) loadIndex(trim.i, false);
+    const go = ()=>{
+      audio.currentTime = trim.start;
+      audio.play().catch(()=>{});
+      trim.preview = true; setPreviewLabel(true);
+    };
+    if(audio.readyState >= 1) go();
+    else audio.addEventListener('loadedmetadata', go, {once:true});
+  }
+
+  function askTrimSave(){
+    const t = tracks[trim.i]; if(!t) return;
+    if(trim.end - trim.start < 1){ toast('至少保留 1 秒'); return; }
+    showConfirm('覆盖原文件',
+      '只保留 ' + fmt(trim.start) + ' – ' + fmt(trim.end) + '（' + fmt(trim.end-trim.start) + '）这段，覆盖：\n\n「' + t.title + '」\n\n原文件其余内容会丢失，无法撤销。',
+      '确认覆盖', ()=>doTrimSave());
+  }
+  async function doTrimSave(){
+    const i = trim.i, t = tracks[i]; if(!t) return;
+    const s = trim.start, e = trim.end;
+    const wasCurrent = (i === curIndex);
+    const wasPlaying = !audio.paused;
+    const btn = $('trimSave');
+    btn.disabled = true; btn.textContent = '处理中…';
+    stopPreview();
+    if(wasCurrent){                             // 释放文件占用，便于替换
+      try{ audio.pause(); }catch(err){}
+      audio.removeAttribute('src'); try{ audio.load(); }catch(err){}
+    }
+    const res = await apiCall('trim_track', t.name, s, e);
+    btn.disabled = false; btn.textContent = '覆盖保存';
+    if(!res || !res.ok){
+      toast('裁剪失败：' + ((res && res.error) || '未知错误'));
+      if(wasCurrent) loadIndex(i, wasPlaying);
+      return;
+    }
+    t.duration = res.duration;
+    t.ver = Date.now();                         // 换 URL 版本，避开缓存
+    closeTrim();
+    if(wasCurrent){ loadIndex(i, wasPlaying); $('dur').textContent = fmt(res.duration); }
+    else renderList();
+    toast('已裁剪：保留 ' + fmt(res.start) + '–' + fmt(res.end));
+  }
+
+  $('trimClose').addEventListener('click', closeTrim);
+  $('trimCancel').addEventListener('click', closeTrim);
+  $('trimPreview').addEventListener('click', togglePreview);
+  $('trimSave').addEventListener('click', askTrimSave);
+  $('trimMask').addEventListener('click', e=>{ if(e.target === $('trimMask')) closeTrim(); });
+  tWave.addEventListener('mousedown', e=>{
+    e.preventDefault(); e.stopPropagation();
+    const h = e.target.closest('.trim-h');
+    if(h){ trimDrag = h.dataset.h; return; }
+    if(trim.i === curIndex && audio.duration){
+      audio.currentTime = Math.min(secOf(e.clientX), Math.max(0, audio.duration - 0.15));
+      updateTrimPlayhead();
+    }
+  });
+  let trimDrag = null;
+  window.addEventListener('mousemove', e=>{
+    if(!trimDrag) return;
+    const GAP = 1;                              // 至少保留 1 秒
+    const sec = secOf(e.clientX);
+    if(trimDrag === 's') trim.start = Math.min(sec, trim.end - GAP);
+    else trim.end = Math.max(sec, trim.start + GAP);
+    trim.start = Math.max(0, Math.min(trim.start, trim.dur));
+    trim.end = Math.max(0, Math.min(trim.end, trim.dur));
+    layoutTrim();
+  });
+  window.addEventListener('mouseup', ()=>{ trimDrag = null; });
+  audio.addEventListener('timeupdate', ()=>{
+    if($('trimMask').classList.contains('show')) updateTrimPlayhead();
+    if(trim.preview && trim.end && audio.currentTime >= trim.end - 0.03){
+      audio.pause(); audio.currentTime = trim.start;
+      stopPreview();
+    }
+  });
+  window.addEventListener('resize', ()=>{ if($('trimMask').classList.contains('show')){ drawWave(); layoutTrim(); } });
+
+  $('ovList').addEventListener('click', e=>{
+    const ed = e.target.closest('.ed');
+    if(ed){ e.stopPropagation(); openTrim(+ed.dataset.ed); return; }
+    const del = e.target.closest('.del');
+    if(del){ e.stopPropagation(); askDelete(+del.dataset.del); return; }
+    const el = e.target.closest('.row'); if(!el) return; closeList(); playIndex(+el.dataset.i);
+  });
 
   // 窗口控制按钮（右上角按钮已由 CSS 默认显示，不依赖 pywebview 就绪事件）
   $('closeBtn').addEventListener('click', ()=>apiCall('close'));
@@ -447,6 +822,15 @@
   $('listBtn').addEventListener('click', openList);
 
   document.addEventListener('keydown', e=>{
+    if($('confirmMask').classList.contains('show')){
+      if(e.code==='Escape'){ e.preventDefault(); closeConfirm(); }
+      return;
+    }
+    if($('trimMask').classList.contains('show')){
+      if(e.code==='Escape'){ e.preventDefault(); closeTrim(); }
+      else if(e.code==='Space'){ e.preventDefault(); togglePreview(); }
+      return;
+    }
     if(e.target.tagName==='INPUT')return;
     if(e.code==='Space'){e.preventDefault();toggle();}
     else if(e.code==='ArrowRight')next(false);
@@ -454,7 +838,7 @@
     else if(e.code==='Escape')closeList();
   });
 
-  const v=lsGet('vol'); if(v!==null){audio.volume=+v;$('volume').value=v;} else audio.volume=0.9;
+  const v0=lsGet('vol'); applyVolume(v0!==null ? +v0 : 0.9);   // 初始值（随后由后端记忆值覆盖）
 
   /* ---------- 启动：若已记忆目录，自动加载 ---------- */
   let booted = false, loggedWait = false;
@@ -466,7 +850,11 @@
     }
     booted = true;
     jslog('api-ready');
-    apiCall('get_library').then(lib=>{ jslog('gl n=' + (lib?lib.tracks.length:'null')); if(lib && lib.tracks && lib.tracks.length) ingestTracks(lib.tracks, lib.last_track||null); });
+    apiCall('get_library').then(lib=>{
+      jslog('gl n=' + (lib?lib.tracks.length:'null'));
+      if(lib && lib.volume!=null && !volTouched){ applyVolume(lib.volume); jslog('vol-cfg=' + lib.volume); }   // 恢复记忆音量
+      if(lib && lib.tracks && lib.tracks.length) ingestTracks(lib.tracks, lib.last_track||null);
+    });
   }
   document.addEventListener('pywebviewready', ()=>jslog('pywebviewready-evt'));
   onReady(tryBoot);
