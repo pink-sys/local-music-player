@@ -87,7 +87,7 @@ pyinstaller --noconfirm --onefile --windowed \
 仓库已配置 GitHub Actions（`.github/workflows/build.yml`）：
 
 - 每次推送到 `main` 会自动在 Windows runner 上打包 exe，并作为 **Artifact** 留存（可在 Actions 页面下载）。
-- 推送形如 `v1.0.0` 的 tag 时，会自动创建 **GitHub Release**，并把 `音乐播放器.exe`（同时附带 ASCII 安全的 `LocalMusicPlayer.exe`）作为可下载资源发布，并自动生成更新说明。
+- 推送形如 `v1.0.0` 的 tag 时，会自动创建 **GitHub Release**，并把打包好的 exe 作为可下载资源发布（资源名为 ASCII 的 `LocalMusicPlayer.exe`，避免部分工具链对中文文件名的兼容问题），并自动生成更新说明。
 
 ```bash
 # 本地打 tag 并发布一个新版本
