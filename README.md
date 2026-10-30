@@ -6,7 +6,7 @@
 
 ![screenshot](docs/screenshot.png)
 
-> 截图请在 `docs/screenshot.png` 放置一张程序运行图（可选，不影响使用）。
+> 上图为程序运行界面：正在播放曲目「降温」，底部为「📁 更换文件夹」按钮。
 
 ## 功能特性
 
