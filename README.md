@@ -56,6 +56,7 @@ player/
 pip install -r requirements.txt
 pyinstaller --noconfirm --onefile --windowed \
   --name "音乐播放器" \
+  --icon app.ico \
   --add-data "player.html;." \
   --collect-submodules webview \
   --collect-submodules mutagen \
