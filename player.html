@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>本地音乐播放器</title>
+<style>
+  :root{
+    --bg:#0c0d12; --txt:#eef0f6; --txt2:#8a90a0; --txt3:#5b6072;
+    --teal:#2fd6c4; --blue:#3a7bff; --line:rgba(255,255,255,.08);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:radial-gradient(900px 600px at 50% -10%,rgba(58,123,255,.12),transparent 60%),
+               radial-gradient(700px 500px at 50% 110%,rgba(47,214,196,.10),transparent 55%),var(--bg);
+    color:var(--txt);height:100vh;overflow:hidden;user-select:none;
+  }
+  .wrap{height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative}
+
+  /* 窗口控制(无边框) */
+  .topctrl{position:fixed;top:10px;right:14px;display:flex;gap:8px;z-index:30}
+  .topctrl button{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--txt2);cursor:pointer;font-size:14px;line-height:1;transition:.15s}
+  .topctrl button:hover{color:#fff;background:rgba(255,255,255,.12)}
+  .topctrl button.on{color:var(--teal);border-color:var(--teal)}
+  /* 列表浮层打开时，隐藏窗口控制与浮动列表按钮，避免与浮层头部按钮重叠 */
+  body.list-open #topctrl{display:none !important}
+
+  /* 缩放手柄（无边框窗口自定义缩放） */
+  .rz{position:fixed;z-index:40;background:transparent;touch-action:none}
+  .rz.n{top:0;left:0;right:0;height:6px;cursor:ns-resize}
+  .rz.s{bottom:0;left:0;right:0;height:6px;cursor:ns-resize}
+  .rz.w{top:0;bottom:0;left:0;width:6px;cursor:ew-resize}
+  .rz.e{top:0;bottom:0;right:0;width:6px;cursor:ew-resize}
+  .rz.ne{top:0;right:0;width:12px;height:12px;cursor:nesw-resize}
+  .rz.nw{top:0;left:0;width:12px;height:12px;cursor:nwse-resize}
+  .rz.se{bottom:0;right:0;width:12px;height:12px;cursor:nwse-resize}
+  .rz.sw{bottom:0;left:0;width:12px;height:12px;cursor:nesw-resize}
+  .rz:hover{background:rgba(120,170,255,.12)}
+
+  /* 选择文件夹 */
+  #picker{text-align:center;max-width:420px}
+  #picker h1{font-size:20px;font-weight:700;margin-bottom:8px}
+  #picker p{color:var(--txt2);font-size:13px;line-height:1.7;margin-bottom:22px}
+  .pick-btn{
+    display:inline-flex;align-items:center;gap:10px;padding:13px 24px;border:none;border-radius:999px;cursor:pointer;font:inherit;
+    background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;font-size:14px;font-weight:600;
+    box-shadow:0 10px 30px rgba(58,123,255,.35);transition:.18s;
+  }
+  .pick-btn:hover{transform:translateY(-2px);box-shadow:0 14px 36px rgba(58,123,255,.45)}
+  #fileInput{display:none}
+
+  /* 播放器主体 */
+  #app{display:none;width:100%;max-width:520px;flex-direction:column;align-items:center}
+  .folder-name{position:fixed;top:14px;left:14px;color:var(--txt3);font-size:12px;max-width:50vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .title{font-size:24px;font-weight:700;text-align:center;margin-bottom:6px;max-width:90%}
+  .artist{font-size:13px;color:var(--txt2);text-align:center;margin-bottom:30px}
+
+  .bar{display:flex;align-items:center;gap:10px;font-size:11.5px;color:var(--txt3);font-variant-numeric:tabular-nums;width:100%}
+  .progress{flex:1;height:6px;border-radius:999px;background:rgba(255,255,255,.1);position:relative;cursor:pointer}
+  .progress .fill{position:absolute;left:0;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,var(--teal),var(--blue));width:0;box-shadow:0 0 10px rgba(47,214,196,.5)}
+  .progress .knob{position:absolute;top:50%;width:13px;height:13px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);left:0;opacity:0;transition:.15s;box-shadow:0 2px 6px rgba(0,0,0,.4)}
+  .progress:hover .knob{opacity:1}
+
+  .controls{display:flex;align-items:center;justify-content:center;gap:18px;padding:0 6px;margin-top:22px}
+  .btn{background:none;border:none;color:var(--txt2);cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:50%;transition:.15s}
+  .btn:hover{color:#fff}
+  .btn.sm{width:40px;height:40px}
+  .btn.sm svg{width:20px;height:20px}
+  .btn.play{width:64px;height:64px;background:linear-gradient(135deg,var(--blue),var(--teal));color:#fff;box-shadow:0 10px 30px rgba(58,123,255,.5)}
+  .btn.play:hover{transform:scale(1.05);color:#fff}
+  .btn.play svg{width:28px;height:28px}
+  .btn.on{color:var(--teal)}
+  .rep-ico{position:relative;display:inline-flex;align-items:center;justify-content:center}
+  .rep-1{position:absolute;right:-4px;bottom:-3px;font-size:11px;font-weight:700;line-height:1;color:var(--teal);background:rgba(10,12,18,.9);border-radius:6px;padding:1px 3px;display:none}
+
+  .vol{display:flex;align-items:center;gap:8px;margin-top:24px;color:var(--txt3)}
+  .vol input[type=range]{width:130px}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:999px;background:rgba(255,255,255,.15);outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.4)}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border:none;border-radius:50%;background:#fff}
+
+  .folder-btn{margin-top:20px;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--txt2);font:inherit;font-size:12.5px;padding:8px 18px;border-radius:999px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:6px}
+  .folder-btn:hover{color:#fff;background:rgba(255,255,255,.12)}
+
+  /* 列表浮层 */
+  .overlay{position:fixed;inset:0;background:rgba(8,9,13,.85);backdrop-filter:blur(8px);display:none;flex-direction:column;z-index:20}
+  .overlay.show{display:flex}
+  .ov-head{display:flex;align-items:center;gap:10px;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .ov-head input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;padding:10px 14px;color:var(--txt);font-size:13px;outline:none}
+  .ov-head input:focus{border-color:var(--blue)}
+  .ov-list{flex:1;overflow-y:auto;padding:8px 10px 30px}
+  .row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer}
+  .row:hover{background:rgba(255,255,255,.05)}
+  .row.active{background:linear-gradient(90deg,rgba(58,123,255,.18),transparent)}
+  .row .n{font-size:13px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row.active .n{color:#fff;font-weight:600}
+  .ov-count{padding:10px 18px;color:var(--txt3);font-size:12px;border-top:1px solid var(--line)}
+
+  /* 拖放提示 */
+  .dropzone{position:fixed;inset:14px;border:2px dashed rgba(47,214,196,.5);border-radius:18px;
+    display:none;align-items:center;justify-content:center;font-size:18px;color:var(--teal);
+    background:rgba(12,13,18,.6);z-index:40;pointer-events:none;font-weight:600}
+
+  ::-webkit-scrollbar{width:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#1c1e28;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;border:1px solid var(--line);z-index:50}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topctrl" id="topctrl">
+    <button id="listBtn" title="曲目列表">☰</button>
+    <button id="minBtn" title="最小化">—</button>
+    <button id="closeBtn" title="关闭">✕</button>
+  </div>
+
+  <!-- 选择文件夹 -->
+  <div id="picker">
+    <h1>🎵 本地音乐播放器</h1>
+    <p>选择音乐文件夹后，下次打开会自动加载，无需重复操作。<br>也可以把文件夹<b>直接拖进窗口</b>临时播放。</p>
+    <button class="pick-btn" id="pickBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7h6l2 2h10v10H3z"/></svg>
+      选择音乐文件夹
+    </button>
+    <input id="fileInput" type="file" webkitdirectory directory multiple>
+  </div>
+
+  <!-- 播放器 -->
+  <div id="app">
+    <div class="folder-name" id="folderName"></div>
+    <div class="title" id="npTitle">未在播放</div>
+    <div class="artist" id="npArtist"></div>
+
+    <div class="bar">
+      <span id="cur">0:00</span>
+      <div class="progress" id="progress"><div class="fill" id="fill"></div><div class="knob" id="knob"></div></div>
+      <span id="dur">0:00</span>
+    </div>
+
+    <div class="controls">
+      <button class="btn sm" id="shuffle" title="随机播放">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg>
+      </button>
+      <button class="btn sm" id="prev" title="上一首">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h2v14H6zM20 5L9 12l11 7z"/></svg>
+      </button>
+      <button class="btn play" id="play" title="播放/暂停">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="btn sm" id="next" title="下一首">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 5h2v14h-2zM4 5l11 7L4 19z"/></svg>
+      </button>
+      <button class="btn sm" id="repeat" title="循环模式">
+        <span class="rep-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 2l4 4-4 4"/><path d="M3 11V9a4 4 0 014-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v2a4 4 0 01-4 4H3"/></svg><span class="rep-1" id="repeatOne">1</span></span>
+      </button>
+    </div>
+
+    <div class="vol">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3z"/><path d="M16 8a4 4 0 010 8" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+      <input type="range" id="volume" min="0" max="1" step="0.01" value="0.9">
+    </div>
+
+    <button class="folder-btn" id="changeFolder">📁 更换文件夹</button>
+  </div>
+</div>
+
+<!-- 列表浮层 -->
+<div class="overlay" id="overlay">
+  <div class="ov-head">
+    <input id="search" placeholder="搜索歌名…" autocomplete="off">
+    <div class="icon-btn" id="closeList" title="关闭" style="width:34px;height:34px;border:1px solid var(--line);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--txt2)">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </div>
+  </div>
+  <div class="ov-list" id="ovList"></div>
+  <div class="ov-count" id="ovCount"></div>
+</div>
+
+<div class="dropzone" id="dropzone">松开以加载音乐</div>
+<div class="toast" id="toast"></div>
+
+<!-- 缩放手柄（鼠标移到边框/角落显示对应光标并拖拽改尺寸） -->
+<div class="rz n"  data-dir="n"></div>
+<div class="rz s"  data-dir="s"></div>
+<div class="rz w"  data-dir="w"></div>
+<div class="rz e"  data-dir="e"></div>
+<div class="rz ne" data-dir="ne"></div>
+<div class="rz nw" data-dir="nw"></div>
+<div class="rz se" data-dir="se"></div>
+<div class="rz sw" data-dir="sw"></div>
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+(function(){
+  const audio = document.getElementById('audio');
+  const $ = id => document.getElementById(id);
+  const AUDIO_EXT = /\.(mp3|flac|m4a|wav|ogg|aac|wma)$/i;
+  const API_PORT = __API_PORT__;
+  function jslog(m){ if(!API_PORT) return; try{ new Image().src = 'http://127.0.0.1:'+API_PORT+'/_js?m='+encodeURIComponent(m); }catch(e){} }
+  window.addEventListener('error', function(e){ jslog('ERR ' + (e.message||'') + ' @' + (e.lineno||'?')); });
+  function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+  jslog('script-start');
+
+  let tracks = [], queue = [], pos = 0, curIndex = -1, shuffle = false, repeat = 0;
+  let curURL = null, dragging = false;
+
+  /* 调用 pywebview 暴露的窗口接口（浏览器中无此法，安全降级） */
+  function apiCall(name, ...args){
+    try{
+      if(window.pywebview && window.pywebview.api && typeof window.pywebview.api[name]==='function')
+        return window.pywebview.api[name](...args);
+    }catch(e){}
+    return Promise.resolve(null);
+  }
+  function onReady(cb){
+    if(window.pywebview) cb();
+    else document.addEventListener('pywebviewready', cb, {once:true});
+  }
+
+  function fmt(sec){ if(sec==null||isNaN(sec))return '--:--'; sec=Math.floor(sec); const m=Math.floor(sec/60),s=sec%60; return m+':'+(s<10?'0':'')+s; }
+  function escapeHtml(s){return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+  function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1500)}
+  function baseName(n){return n.replace(/\.[^.]+$/,'')}
+
+  /* ---------- 加载曲目：File 对象数组（拖入 / 网页版选择） ---------- */
+  function ingestFiles(fileLike){
+    const arr = Array.from(fileLike).filter(f => AUDIO_EXT.test(f.name));
+    if(!arr.length){ toast('没有可播放的音乐文件'); return; }
+    const map = {}; arr.forEach(f => map[f.name.toLowerCase()] = f);
+    tracks = arr.map(f => ({
+      name: f.name, title: baseName(f.name), file: f, url: null, duration: null, lrc: null
+    }));
+    tracks.sort((a,b)=>a.title.localeCompare(b.title,'zh'));
+    showPlayer();
+    rebuildQueue(); renderList(); loadIndex(queue[0], true);
+    toast('已加载 '+tracks.length+' 首');
+  }
+
+  /* ---------- 加载曲目：url 列表（来自 Python 端的本地库，可记忆） ---------- */
+  function ingestTracks(list, lastTrack){
+    tracks = list.map(t=>({
+      name:t.name, title:t.title||baseName(t.name), url:t.url||null, file:null,
+      duration:(t.duration!=null?+t.duration:null), lrc:null
+    }));
+    showPlayer();
+    rebuildQueue(); renderList();
+    let idx = 0;
+    if(lastTrack){ const k = tracks.findIndex(t=>t.name===lastTrack); if(k>=0) idx=k; }
+    loadIndex(idx, !!lastTrack);   // 有记忆则尝试接续播放，否则仅定位首曲
+    toast('已加载 '+tracks.length+' 首');
+  }
+
+  function showPlayer(){
+    $('picker').style.display='none';
+    $('app').style.display='flex';
+    $('folderName').textContent = '本地音乐';
+  }
+
+  function rebuildQueue(){
+    queue = tracks.map((_,i)=>i);
+    if(shuffle) for(let i=queue.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[queue[i],queue[j]]=[queue[j],queue[i]];}
+  }
+
+  function renderList(){
+    const kw = $('search').value.toLowerCase();
+    const arr = tracks.map((t,i)=>({t,i})).filter(o=>o.t.title.toLowerCase().includes(kw));
+    $('ovList').innerHTML = arr.map(o=>`<div class="row ${o.i===curIndex?'active':''}" data-i="${o.i}"><span class="n">${escapeHtml(o.t.title)}</span></div>`).join('');
+    $('ovCount').textContent = arr.length+' / '+tracks.length+' 首';
+  }
+
+  function playIndex(i){ loadIndex(i, true); }
+  function loadIndex(i, autoplay){
+    if(i<0||i>=tracks.length) return;
+    curIndex = i;
+    pos = queue.indexOf(i); if(pos<0){ queue.push(i); pos=queue.length-1; }
+    const t = tracks[curIndex];
+    if(t.url){ if(curURL){ URL.revokeObjectURL(curURL); curURL=null; } audio.src = t.url; }
+    else if(t.file){ if(curURL) URL.revokeObjectURL(curURL); curURL = URL.createObjectURL(t.file); audio.src = curURL; }
+    else return;
+    $('npTitle').textContent = t.title;
+    $('npArtist').textContent = '本地音乐';
+    $('dur').textContent = (t.duration && !isNaN(t.duration)) ? fmt(t.duration) : '--:--';
+    renderList();
+    apiCall('remember_track', t.name);
+    if(autoplay) audio.play().catch(()=>{});
+  }
+  function play(){ if(curIndex<0){if(tracks.length)playIndex(queue[0]);return;} audio.play().catch(()=>{}); }
+  function pause(){ audio.pause(); }
+  function toggle(){ audio.paused?play():pause(); }
+  function next(auto){
+    if(repeat===1 && auto){ audio.currentTime=0; play(); return; }
+    if(pos<queue.length-1) pos++;
+    else { if(auto){pause();return;} pos=0; }
+    playIndex(queue[pos]);
+  }
+  function prev(){
+    if(audio.currentTime>3){ audio.currentTime=0; return; }
+    pos = pos>0 ? pos-1 : queue.length-1;
+    playIndex(queue[pos]);
+  }
+
+  function updateProgress(){
+    const cur=audio.currentTime, dur=audio.duration, pct=dur?(cur/dur*100):0;
+    $('fill').style.width=pct+'%'; $('knob').style.left=pct+'%';
+    $('cur').textContent=fmt(cur); if(dur)$('dur').textContent=fmt(dur);
+  }
+  function seekTo(x){
+    const r=$('progress').getBoundingClientRect();
+    let p=Math.max(0,Math.min(1,(x-r.left)/r.width));
+    if(audio.duration) audio.currentTime=p*audio.duration;
+    $('fill').style.width=p*100+'%'; $('knob').style.left=p*100+'%';
+  }
+
+  /* ---------- 拖拽移动窗口（无边框） ---------- */
+  let drag=null, dragRAF=null, dragTarget=null;
+  document.addEventListener('mousedown', e=>{
+    if(e.target.closest('button, input, .progress, .overlay, .row, .topctrl, .pick-btn, .rz')) return;
+    onReady(()=>{ apiCall('get_pos').then(p=>{ if(p) drag={sx:e.screenX, sy:e.screenY, wx:p[0], wy:p[1]}; }); });
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!drag) return;
+    dragTarget = {x: drag.wx+(e.screenX-drag.sx), y: drag.wy+(e.screenY-drag.sy)};
+    if(!dragRAF) dragRAF=requestAnimationFrame(()=>{ dragRAF=null; if(dragTarget) apiCall('move', dragTarget.x, dragTarget.y); });
+  });
+  window.addEventListener('mouseup', ()=>{ drag=null; rz=null; });
+
+  /* ---------- 拖拽边框/角落缩放窗口（无边框） ---------- */
+  const MINW = 400, MINH = 480;
+  let rz=null, rzRAF=null, rzTarget=null;
+  document.querySelectorAll('.rz').forEach(h=>{
+    h.addEventListener('mousedown', e=>{
+      e.preventDefault(); e.stopPropagation();
+      const dir = h.dataset.dir;
+      onReady(()=>{
+        Promise.all([apiCall('get_size'), apiCall('get_pos')]).then(([s,p])=>{
+          if(!s) return;
+          rz = {dir, sx:e.screenX, sy:e.screenY, w:s[0], h:s[1], wx:(p?p[0]:0), wy:(p?p[1]:0)};
+        });
+      });
+    });
+  });
+  document.addEventListener('mousemove', e=>{
+    if(!rz) return;
+    const dx = e.screenX - rz.sx, dy = e.screenY - rz.sy;
+    let w = rz.w, h = rz.h, wx = rz.wx, wy = rz.wy, move = false, changed = false;
+    if(rz.dir.includes('e')){ w = Math.max(MINW, rz.w + dx); changed = true; }
+    if(rz.dir.includes('s')){ h = Math.max(MINH, rz.h + dy); changed = true; }
+    if(rz.dir.includes('w')){ w = Math.max(MINW, rz.w - dx); wx = rz.wx + (rz.w - w); changed = true; move = true; }
+    if(rz.dir.includes('n')){ h = Math.max(MINH, rz.h - dy); wy = rz.wy + (rz.h - h); changed = true; move = true; }
+    if(changed) rzTarget = {w, h, wx, wy, move};
+    if(!rzRAF) rzRAF = requestAnimationFrame(()=>{
+      rzRAF = null;
+      if(rzTarget){
+        if(rzTarget.move) apiCall('move', rzTarget.wx, rzTarget.wy);
+        apiCall('resize', rzTarget.w, rzTarget.h);
+      }
+    });
+  });
+
+  /* ---------- 拖入文件夹加载（临时，不记忆） ---------- */
+  function readEntry(entry, out){
+    return new Promise(res=>{
+      if(entry.isFile){ entry.file(f=>{ out.push(f); res(); }); }
+      else if(entry.isDirectory){
+        const reader=entry.createReader(); let batch=[];
+        const read=()=>reader.readEntries(ents=>{
+          if(!ents.length){ Promise.all(batch.map(x=>readEntry(x,out))).then(res); }
+          else { batch=batch.concat(Array.from(ents)); read(); }
+        }, ()=>res());
+        read();
+      } else res();
+    });
+  }
+  async function collectFiles(dt){
+    const out=[];
+    if(dt.items && dt.items.length){
+      const entries=[];
+      for(const it of dt.items){ if(it.kind==='file'){ const en=it.webkitGetAsEntry&&it.webkitGetAsEntry(); if(en) entries.push(en); } }
+      for(const en of entries) await readEntry(en, out);
+    }
+    if(!out.length){ for(const f of dt.files) out.push(f); }
+    return out;
+  }
+  const dz=$('dropzone');
+  ['dragenter','dragover'].forEach(ev=>document.addEventListener(ev, e=>{
+    if(e.dataTransfer && e.dataTransfer.types && (e.dataTransfer.types.indexOf('Files')>=0)){ e.preventDefault(); dz.style.display='flex'; }
+  }));
+  document.addEventListener('dragleave', e=>{ if(e.relatedTarget===null) dz.style.display='none'; });
+  document.addEventListener('drop', e=>{
+    if(e.dataTransfer && e.dataTransfer.types && e.dataTransfer.types.indexOf('Files')>=0){ e.preventDefault(); dz.style.display='none'; collectFiles(e.dataTransfer).then(ingestFiles); }
+  });
+
+  /* ---------- 事件 ---------- */
+  function pickFolder(cb){
+    if(window.pywebview && window.pywebview.api && typeof window.pywebview.api.choose_folder==='function'){
+      apiCall('choose_folder').then(lib=>{
+        if(lib && lib.tracks && lib.tracks.length){
+          if(lib.dir) $('folderName').textContent = lib.dir.split(/[\\/]/).pop() || lib.dir;
+          cb(lib);
+        } else { toast('该文件夹没有可播放的音乐'); }
+      });
+    } else {
+      $('fileInput').click();   // 网页版回退到原生选择
+    }
+  }
+  $('pickBtn').addEventListener('click', ()=>pickFolder(lib=>ingestTracks(lib.tracks, lib.last_track||null)));
+  $('changeFolder').addEventListener('click', ()=>pickFolder(lib=>ingestTracks(lib.tracks, lib.last_track||null)));
+  $('fileInput').addEventListener('change', e=>ingestFiles(e.target.files));
+  $('play').addEventListener('click', toggle);
+  $('next').addEventListener('click', ()=>next(false));
+  $('prev').addEventListener('click', prev);
+  $('shuffle').addEventListener('click', ()=>{ shuffle=!shuffle; $('shuffle').classList.toggle('on',shuffle); rebuildQueue(); if(curIndex>=0)pos=queue.indexOf(curIndex); toast(shuffle?'随机：开':'随机：关'); });
+  $('repeat').addEventListener('click', ()=>{
+    repeat = repeat===1 ? 0 : 1;
+    const on = repeat===1;
+    $('repeat').classList.toggle('on', on);
+    $('repeatOne').style.display = on ? 'block' : 'none';
+    toast(on ? '单曲循环' : '顺序播放');
+  });
+  $('volume').addEventListener('input', e=>{ audio.volume=+e.target.value; lsSet('vol',e.target.value); });
+  $('progress').addEventListener('mousedown', e=>{dragging=true;seekTo(e.clientX);});
+  window.addEventListener('mousemove', e=>{if(dragging)seekTo(e.clientX);});
+  window.addEventListener('mouseup', ()=>dragging=false);
+
+  audio.addEventListener('timeupdate', ()=>{if(!dragging)updateProgress();});
+  audio.addEventListener('loadedmetadata', ()=>{$('dur').textContent=fmt(audio.duration);updateProgress();});
+  audio.addEventListener('play', ()=>{$('playIcon').innerHTML='<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>';});
+  audio.addEventListener('pause', ()=>{$('playIcon').innerHTML='<path d="M8 5v14l11-7z"/>';});
+  audio.addEventListener('ended', ()=>next(true));
+
+  // 列表浮层
+  function openList(){ renderList(); $('overlay').classList.add('show'); document.body.classList.add('list-open'); $('search').focus(); }
+  function closeList(){ $('overlay').classList.remove('show'); document.body.classList.remove('list-open'); }
+  $('closeList').addEventListener('click', closeList);
+  $('npTitle').addEventListener('dblclick', openList);
+
+  $('search').addEventListener('input', renderList);
+  $('ovList').addEventListener('click', e=>{ const el=e.target.closest('.row'); if(!el)return; closeList(); playIndex(+el.dataset.i); });
+
+  // 窗口控制按钮（右上角按钮已由 CSS 默认显示，不依赖 pywebview 就绪事件）
+  $('closeBtn').addEventListener('click', ()=>apiCall('close'));
+  $('minBtn').addEventListener('click', ()=>apiCall('minimize'));
+  $('listBtn').addEventListener('click', openList);
+
+  document.addEventListener('keydown', e=>{
+    if(e.target.tagName==='INPUT')return;
+    if(e.code==='Space'){e.preventDefault();toggle();}
+    else if(e.code==='ArrowRight')next(false);
+    else if(e.code==='ArrowLeft')prev();
+    else if(e.code==='Escape')closeList();
+  });
+
+  const v=lsGet('vol'); if(v!==null){audio.volume=+v;$('volume').value=v;} else audio.volume=0.9;
+
+  /* ---------- 启动：若已记忆目录，自动加载 ---------- */
+  let booted = false, loggedWait = false;
+  function tryBoot(){
+    if(booted) return;
+    if(!(window.pywebview && window.pywebview.api)){
+      if(!loggedWait){ jslog('wait-api'); loggedWait = true; }
+      setTimeout(tryBoot, 500); return;   // 轮询直到 API 就绪
+    }
+    booted = true;
+    jslog('api-ready');
+    apiCall('get_library').then(lib=>{ jslog('gl n=' + (lib?lib.tracks.length:'null')); if(lib && lib.tracks && lib.tracks.length) ingestTracks(lib.tracks, lib.last_track||null); });
+  }
+  document.addEventListener('pywebviewready', ()=>jslog('pywebviewready-evt'));
+  onReady(tryBoot);
+  tryBoot();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+# ---- Python ----
+__pycache__/
+*.pyc
+
+# ---- PyInstaller 产物 ----
+build/
+dist/
+*.exe
+
+# ---- 运行时日志 ----
+server_trace.log
+
+# ---- 系统 ----
+Thumbs.db
+.DS_Store
+
+# ---- 非项目文件 ----
+.workbuddy/
