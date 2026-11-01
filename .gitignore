@@ -7,8 +7,10 @@ build/
 dist/
 *.exe
 
-# ---- 运行时日志 ----
+# ---- 运行时日志 / 本地配置 ----
 server_trace.log
+player_config.json
+*.trimtmp
 
 # ---- 系统 ----
 Thumbs.db

@@ -10,9 +10,26 @@ import shutil
 import threading
 import mimetypes
 import subprocess
+import ctypes
+from ctypes import wintypes
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import unquote, quote
 import webview
+
+# 窗口几何统一走"物理像素"：WebView2 的 CSS 像素与 pywebview 的逻辑像素不一定同尺度
+# （页面缩放/DPI 缩放会让两者差 1.5 倍），JSON 坐标乘来乘去就会出现拖拽跟不上、乱晃。
+# 所以直接用 SetWindowPos/GetWindowRect 的物理像素，前后端不再做任何 DPI 换算。
+_user32 = ctypes.windll.user32
+_user32.GetWindowRect.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.RECT)]
+_user32.GetWindowRect.restype = wintypes.BOOL
+_user32.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
+                                 ctypes.c_int, ctypes.c_int, wintypes.UINT]
+_user32.SetWindowPos.restype = wintypes.BOOL
+
+SWP_NOSIZE = 0x0001
+SWP_NOMOVE = 0x0002
+SWP_NOZORDER = 0x0004
+SWP_NOACTIVATE = 0x0010
 
 try:
     from mutagen import File as MutagenFile
@@ -320,37 +337,74 @@ class Api:
         self.port = None
         self.cw = 480
         self.ch = 680
+        self._x = None            # 最近一次已知窗口位置（避免读位置失败时给出假坐标）
+        self._y = None
 
-    # ---- 窗口控制（无边框） ----
-    def move(self, x, y):
+    # ---- 窗口控制（无边框，全部用物理像素） ----
+    def _hwnd(self):
         try:
-            webview.windows[0].move(int(x), int(y))
+            return wintypes.HWND(int(webview.windows[0].native.Handle.ToInt64()))
         except Exception:
-            pass
+            return None
 
-    def resize(self, w, h):
+    def _rect(self):
+        h = self._hwnd()
+        if not h:
+            return None
+        r = wintypes.RECT()
+        if not _user32.GetWindowRect(h, ctypes.byref(r)):
+            return None
+        return r
+
+    def win_move(self, x, y):
+        """把窗口左上角移到物理像素 (x, y)。"""
         try:
-            webview.windows[0].resize(int(w), int(h))
-            self.cw, self.ch = int(w), int(h)
+            x, y = int(round(float(x))), int(round(float(y)))
         except Exception:
-            pass
+            return False
+        h = self._hwnd()
+        if not h:
+            return False
+        _user32.SetWindowPos(h, None, x, y, 0, 0,
+                             SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE)
+        self._x, self._y = x, y
+        return True
 
-    def get_size(self):
+    def win_resize(self, w, h):
+        """按物理像素改窗口尺寸，左上角不动。"""
+        try:
+            w, h = int(round(float(w))), int(round(float(h)))
+        except Exception:
+            return False
+        hw = self._hwnd()
+        if not hw:
+            return False
+        _user32.SetWindowPos(hw, None, 0, 0, w, h,
+                             SWP_NOMOVE | SWP_NOZORDER | SWP_NOACTIVATE)
+        self.cw, self.ch = w, h
+        return True
+
+    def win_size(self):
+        r = self._rect()
+        if r:
+            self.cw, self.ch = int(r.right - r.left), int(r.bottom - r.top)
         return [self.cw, self.ch]
 
-    def get_pos(self):
-        try:
-            return list(webview.windows[0].get_position())
-        except Exception:
-            return [0, 0]
+    def win_pos(self):
+        r = self._rect()
+        if r is None:
+            # 读不到就不要给假坐标，前端会跳过这次拖拽而不是跳到 (0,0)
+            return None if self._x is None else [self._x, self._y]
+        self._x, self._y = int(r.left), int(r.top)
+        return [self._x, self._y]
 
-    def minimize(self):
+    def win_min(self):
         try:
             webview.windows[0].minimize()
         except Exception:
             pass
 
-    def close(self):
+    def win_close(self):
         try:
             webview.windows[0].destroy()
         except Exception:
@@ -572,6 +626,10 @@ def main():
         width=480,
         height=680,
         min_size=(400, 480),
+        # 必须关掉：pywebview 自带的 easy_drag 也会在 mousedown 时拖窗口（而且拿
+        # clientX 当 screenX 用、按逻辑像素 move），和我们页面里的拖拽同时生效，
+        # 两套坐标互相拉扯 —— 这正是"按住拖动会乱晃"的根因。
+        easy_drag=False,
     )
     webview.start()
 

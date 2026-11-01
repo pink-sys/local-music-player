@@ -411,50 +411,124 @@
   }
 
   /* ---------- 拖拽移动窗口（无边框） ---------- */
-  let drag=null, dragRAF=null, dragTarget=null;
-  document.addEventListener('mousedown', e=>{
+  // 坐标一律用**物理像素**，后端直接 SetWindowPos / GetWindowRect。
+  // 原因：WebView2 的 CSS 像素和 pywebview 的逻辑像素不一定是同一尺度（这台机器上
+  // devicePixelRatio=2.625 而窗口 DPI 只有 1.75，差 1.5 倍），把 CSS 位移直接喂给
+  // move() 时窗口只走三分之二，鼠标越拖越偏、来回修正，看起来就是"乱晃"。
+  // e.screenX 是 CSS(DIP) 坐标，乘 devicePixelRatio 即物理像素，全程不做其他换算。
+  // 另外：① 用缓存位置同步起拖，按下即跟手；② 超过阈值才算拖，纯点击不挪窗口；
+  // ③ pointer capture 保证窗口外松手也能收到 pointerup，不留残留拖拽状态。
+  let winPos = null;            // 最近已知窗口左上角（物理像素）{x,y}
+  let winSize = null;           // 最近已知窗口尺寸（物理像素）{w,h}
+  const DRAG_TOL = 4;           // 起拖阈值（物理像素）
+  let dragP = null;             // {id,sx,sy,wx,wy,k,moved,busy,target}
+
+  function dpr(){ return window.devicePixelRatio || 1; }
+
+  function syncWinPos(){
+    apiCall('win_pos').then(p=>{ if(p && p.length===2 && p[0]!=null) winPos={x:p[0], y:p[1]}; }, ()=>{});
+  }
+
+  function syncWinSize(){
+    apiCall('win_size').then(s=>{ if(s && s.length===2) winSize={w:s[0], h:s[1]}; }, ()=>{});
+  }
+
+  function flushDrag(){
+    const d = dragP;
+    if(!d || !d.moved || d.busy || !d.target) return;
+    const t = d.target; d.target = null; d.busy = true;
+    winPos = {x:t.x, y:t.y};                    // 乐观更新，下一次拖拽直接用
+    const done = ()=>{ if(dragP){ dragP.busy = false; flushDrag(); } };   // 单飞：不排队，只发最新目标
+    apiCall('win_move', t.x, t.y).then(done, done);
+  }
+
+  document.addEventListener('pointerdown', e=>{
+    if(e.button !== 0 || e.isPrimary === false) return;
     if(e.target.closest('button, input, .progress, .overlay, .row, .topctrl, .pick-btn, .rz, .trim, .confirm')) return;
-    onReady(()=>{ apiCall('get_pos').then(p=>{ if(p) drag={sx:e.screenX, sy:e.screenY, wx:p[0], wy:p[1]}; }); });
+    if(!winPos){ syncWinPos(); return; }        // 位置还没拿到，这次不拖（下次就好了）
+    const k = dpr();
+    dragP = {id:e.pointerId, sx:e.screenX, sy:e.screenY, wx:winPos.x, wy:winPos.y,
+             k, moved:false, busy:false, target:null};
+    try{ document.body.setPointerCapture(e.pointerId); }catch(_){}
   });
-  document.addEventListener('mousemove', e=>{
-    if(!drag) return;
-    dragTarget = {x: drag.wx+(e.screenX-drag.sx), y: drag.wy+(e.screenY-drag.sy)};
-    if(!dragRAF) dragRAF=requestAnimationFrame(()=>{ dragRAF=null; if(dragTarget) apiCall('move', dragTarget.x, dragTarget.y); });
+
+  document.addEventListener('pointermove', e=>{
+    const d = dragP;
+    if(!d || e.pointerId !== d.id) return;
+    const dx = (e.screenX - d.sx) * d.k, dy = (e.screenY - d.sy) * d.k;
+    if(!d.moved){
+      if(Math.abs(dx) < DRAG_TOL && Math.abs(dy) < DRAG_TOL) return;
+      d.moved = true;
+    }
+    d.target = {x: Math.round(d.wx + dx), y: Math.round(d.wy + dy)};
+    flushDrag();
   });
-  window.addEventListener('mouseup', ()=>{ drag=null; rz=null; });
+
+  function endDrag(){
+    if(!dragP) return;
+    const d = dragP; dragP = null;
+    try{ document.body.releasePointerCapture(d.id); }catch(_){}
+    // 松手时如果还有没发出去的最后一帧，补一发再校准，避免停在倒数第二帧的位置
+    if(d.target) apiCall('win_move', d.target.x, d.target.y).then(syncWinPos, syncWinPos);
+    else syncWinPos();                          // 结束后校准一次，避免累计误差
+  }
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+  window.addEventListener('blur', endDrag);
 
   /* ---------- 拖拽边框/角落缩放窗口（无边框） ---------- */
-  const MINW = 400, MINH = 480;
-  let rz=null, rzRAF=null, rzTarget=null;
+  const MINW = 300, MINH = 400;          // 最小尺寸（CSS 像素，按当前屏幕缩放折算成物理像素）
+  let rz = null, rzRAF = null, rzTarget = null;
+
+  function beginResize(dir, e, w, h, wx, wy){
+    rz = {dir, sx:e.screenX, sy:e.screenY, w, h, wx, wy, k:dpr()};
+  }
+
   document.querySelectorAll('.rz').forEach(h=>{
     h.addEventListener('mousedown', e=>{
       e.preventDefault(); e.stopPropagation();
       const dir = h.dataset.dir;
+      // 有缓存就同步起拖，避免和移动窗口一样出现"按下后先不动、再补跳"的滞后感
+      if(winSize && winPos){ beginResize(dir, e, winSize.w, winSize.h, winPos.x, winPos.y); return; }
       onReady(()=>{
-        Promise.all([apiCall('get_size'), apiCall('get_pos')]).then(([s,p])=>{
+        Promise.all([apiCall('win_size'), apiCall('win_pos')]).then(([s, p])=>{
           if(!s) return;
-          rz = {dir, sx:e.screenX, sy:e.screenY, w:s[0], h:s[1], wx:(p?p[0]:0), wy:(p?p[1]:0)};
+          beginResize(dir, e, s[0], s[1], p ? p[0] : 0, p ? p[1] : 0);
+          winSize = {w:s[0], h:s[1]};
+          if(p) winPos = {x:p[0], y:p[1]};
         });
       });
     });
   });
+
   document.addEventListener('mousemove', e=>{
     if(!rz) return;
-    const dx = e.screenX - rz.sx, dy = e.screenY - rz.sy;
+    const dx = (e.screenX - rz.sx) * rz.k, dy = (e.screenY - rz.sy) * rz.k;
+    const minW = MINW * rz.k, minH = MINH * rz.k;
     let w = rz.w, h = rz.h, wx = rz.wx, wy = rz.wy, move = false, changed = false;
-    if(rz.dir.includes('e')){ w = Math.max(MINW, rz.w + dx); changed = true; }
-    if(rz.dir.includes('s')){ h = Math.max(MINH, rz.h + dy); changed = true; }
-    if(rz.dir.includes('w')){ w = Math.max(MINW, rz.w - dx); wx = rz.wx + (rz.w - w); changed = true; move = true; }
-    if(rz.dir.includes('n')){ h = Math.max(MINH, rz.h - dy); wy = rz.wy + (rz.h - h); changed = true; move = true; }
-    if(changed) rzTarget = {w, h, wx, wy, move};
+    if(rz.dir.includes('e')){ w = Math.max(minW, rz.w + dx); changed = true; }
+    if(rz.dir.includes('s')){ h = Math.max(minH, rz.h + dy); changed = true; }
+    if(rz.dir.includes('w')){ w = Math.max(minW, rz.w - dx); wx = rz.wx + (rz.w - w); changed = true; move = true; }
+    if(rz.dir.includes('n')){ h = Math.max(minH, rz.h - dy); wy = rz.wy + (rz.h - h); changed = true; move = true; }
+    if(changed) rzTarget = {w:Math.round(w), h:Math.round(h), wx:Math.round(wx), wy:Math.round(wy), move};
     if(!rzRAF) rzRAF = requestAnimationFrame(()=>{
       rzRAF = null;
-      if(rzTarget){
-        if(rzTarget.move) apiCall('move', rzTarget.wx, rzTarget.wy);
-        apiCall('resize', rzTarget.w, rzTarget.h);
-      }
+      const t = rzTarget; rzTarget = null;
+      if(!t) return;
+      if(t.move) apiCall('win_move', t.wx, t.wy);
+      apiCall('win_resize', t.w, t.h);
+      winSize = {w:t.w, h:t.h};                     // 供下一次缩放直接同步起拖
+      if(t.move) winPos = {x:t.wx, y:t.wy};
     });
   });
+
+  function endResize(){
+    if(!rz) return;
+    rz = null; rzTarget = null;
+    syncWinPos(); syncWinSize();                    // 松手后校准，避免高频调用累积误差
+  }
+  window.addEventListener('mouseup', endResize);
+  window.addEventListener('blur', endResize);
 
   /* ---------- 拖入文件夹加载（临时，不记忆） ---------- */
   function readEntry(entry, out){
@@ -817,8 +891,8 @@
   });
 
   // 窗口控制按钮（右上角按钮已由 CSS 默认显示，不依赖 pywebview 就绪事件）
-  $('closeBtn').addEventListener('click', ()=>apiCall('close'));
-  $('minBtn').addEventListener('click', ()=>apiCall('minimize'));
+  $('closeBtn').addEventListener('click', ()=>apiCall('win_close'));
+  $('minBtn').addEventListener('click', ()=>apiCall('win_min'));
   $('listBtn').addEventListener('click', openList);
 
   document.addEventListener('keydown', e=>{
@@ -850,6 +924,7 @@
     }
     booted = true;
     jslog('api-ready');
+    syncWinPos(); syncWinSize();          // 预热窗口位置/尺寸缓存，让首次拖动就能同步起拖
     apiCall('get_library').then(lib=>{
       jslog('gl n=' + (lib?lib.tracks.length:'null'));
       if(lib && lib.volume!=null && !volTouched){ applyVolume(lib.volume); jslog('vol-cfg=' + lib.volume); }   // 恢复记忆音量
